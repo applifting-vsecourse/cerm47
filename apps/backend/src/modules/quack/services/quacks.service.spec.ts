@@ -17,15 +17,49 @@ const aQuack = (overrides: Partial<Quack> = {}): Quack => ({
 });
 
 describe('QuacksService', () => {
-  it('returns quacks from the repository', async () => {
+  const user = { id: 'u1' } as Identity;
+
+  it('returns the full feed without a search term', async () => {
     const quacks = [aQuack()];
     const repository = mock<QuackRepository>();
     repository.getQuacks.mockResolvedValue(quacks);
 
     const service = new QuacksService(repository);
+    const log = jest.spyOn(service['logger'], 'log').mockImplementation();
 
-    await expect(service.getQuacks()).resolves.toEqual(quacks);
-    expect(repository.getQuacks).toHaveBeenCalledTimes(1);
+    await expect(service.getQuacks(user)).resolves.toEqual(quacks);
+    expect(repository.getQuacks).toHaveBeenCalledWith([]);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it('treats a whitespace-only term as no search', async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuacks.mockResolvedValue([]);
+
+    const service = new QuacksService(repository);
+    const log = jest.spyOn(service['logger'], 'log').mockImplementation();
+
+    await service.getQuacks(user, '   ');
+    expect(repository.getQuacks).toHaveBeenCalledWith([]);
+    expect(log).not.toHaveBeenCalled();
+  });
+
+  it('splits the term into words and logs the search', async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuacks.mockResolvedValue([aQuack()]);
+
+    const service = new QuacksService(repository);
+    const log = jest.spyOn(service['logger'], 'log').mockImplementation();
+
+    await service.getQuacks(user, '  duck   pond ');
+    expect(repository.getQuacks).toHaveBeenCalledWith(['duck', 'pond']);
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(log.mock.calls[0][0] as string)).toEqual({
+      event: 'quack_search',
+      userId: 'u1',
+      term: 'duck pond',
+      results: 1,
+    });
   });
 
   it('creates a quack owned by the signed-in user', async () => {
@@ -34,8 +68,6 @@ describe('QuacksService', () => {
     repository.createQuack.mockResolvedValue(created);
 
     const service = new QuacksService(repository);
-    const user = { id: 'u1' } as Identity;
-
     await expect(service.createQuack(user, { text: 'hello' })).resolves.toEqual(
       created,
     );

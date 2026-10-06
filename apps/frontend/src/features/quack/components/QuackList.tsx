@@ -5,15 +5,28 @@ import { Button } from "@/components/ui/button"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { QuackItem } from "@/features/quack/components/QuackItem"
+import { searchTerms } from "@/features/quack/lib/searchTerms"
 
 type QuackListProps = {
   quacks: Quack[]
   isLoading?: boolean
   error?: Error
   onReload?: () => void
+  /** The active search term, if any — switches the empty state to "no matches". */
+  searchTerm?: string
+  onClearSearch?: () => void
 }
 
-export function QuackList({ quacks, isLoading, error, onReload }: QuackListProps) {
+export function QuackList({
+  quacks,
+  isLoading,
+  error,
+  onReload,
+  searchTerm,
+  onClearSearch,
+}: QuackListProps) {
+  const terms = searchTerms(searchTerm)
+
   return (
     <div className="flex flex-col">
       {isLoading && quacks.length === 0 ? (
@@ -44,7 +57,24 @@ export function QuackList({ quacks, isLoading, error, onReload }: QuackListProps
         </Alert>
       ) : null}
 
-      {!isLoading && !error && quacks.length === 0 ? (
+      {!isLoading && !error && quacks.length === 0 && terms.length > 0 ? (
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            No quacks match &quot;{terms.join(" ")}&quot;.
+          </p>
+          {onClearSearch ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClearSearch}
+            >
+              Clear search
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!isLoading && !error && quacks.length === 0 && terms.length === 0 ? (
         <p className="py-8 text-center text-sm text-muted-foreground">
           No quacks yet. Post the first one.
         </p>
@@ -54,6 +84,7 @@ export function QuackList({ quacks, isLoading, error, onReload }: QuackListProps
         <QuackItem
           key={quack.id}
           quack={quack}
+          terms={terms}
         />
       ))}
     </div>
