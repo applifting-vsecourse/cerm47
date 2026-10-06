@@ -1,6 +1,6 @@
 import { QuackMood } from '@/generated/prisma/client';
 import { Quack } from '@/modules/quack/domain/quack';
-import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 class QuackUserDto {
   @ApiProperty()
