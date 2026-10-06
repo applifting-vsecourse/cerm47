@@ -13,14 +13,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { cn } from "@/lib/utils"
 
 import { quackMoodSchema } from "@/features/quack/api/quackSchemas"
@@ -31,9 +25,9 @@ import { MOOD_OPTIONS } from "@/features/quack/components/mood"
 // the request is made — the server still validates independently.
 const MAX_LENGTH = 280
 
-// Radix Select items can't carry an empty string value, so "no mood" gets its
-// own sentinel that is translated back to `undefined` before submitting.
-const NO_MOOD = "none"
+// A collapsible single-select toggle group reports "" when nothing is
+// pressed, so that doubles as the "no mood" sentinel.
+const NO_MOOD = ""
 
 const schema = z.object({
   text: z
@@ -81,59 +75,56 @@ export function QuackForm({ className }: QuackFormProps) {
           </Alert>
         ) : null}
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <FormField
-            control={form.control}
-            name="text"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>New quack</FormLabel>
-                <FormControl>
-                  <Textarea
-                    rows={3}
-                    placeholder="Quack something..."
-                    disabled={addQuack.isPending}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <FormField
+          control={form.control}
+          name="text"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>New quack</FormLabel>
+              <FormControl>
+                <Textarea
+                  rows={3}
+                  placeholder="Quack something..."
+                  disabled={addQuack.isPending}
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
-          <FormField
-            control={form.control}
-            name="mood"
-            render={({ field }) => (
-              <FormItem className="sm:w-40">
-                <FormLabel>Mood</FormLabel>
-                <Select
+        <FormField
+          control={form.control}
+          name="mood"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Mood</FormLabel>
+              <FormControl>
+                <ToggleGroup
+                  type="single"
+                  variant="outline"
+                  size="sm"
+                  spacing={2}
                   value={field.value}
                   onValueChange={field.onChange}
                   disabled={addQuack.isPending}
                 >
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="No mood" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={NO_MOOD}>No mood</SelectItem>
-                    {MOOD_OPTIONS.map((option) => (
-                      <SelectItem
-                        key={option.value}
-                        value={option.value}
-                      >
-                        {option.emoji} {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                  {MOOD_OPTIONS.map((option) => (
+                    <ToggleGroupItem
+                      key={option.value}
+                      value={option.value}
+                      aria-label={option.label}
+                    >
+                      <span aria-hidden="true">{option.emoji}</span>
+                    </ToggleGroupItem>
+                  ))}
+                </ToggleGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="flex items-center justify-end gap-3">
           <span
