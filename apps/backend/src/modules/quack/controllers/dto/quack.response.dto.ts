@@ -1,5 +1,6 @@
+import { QuackMood } from '@/generated/prisma/client';
 import { Quack } from '@/modules/quack/domain/quack';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 class QuackUserDto {
   @ApiProperty()
@@ -19,6 +20,9 @@ export class QuackResponseDto {
   @ApiProperty()
   text!: string;
 
+  @ApiPropertyOptional({ enum: QuackMood, nullable: true })
+  mood!: QuackMood | null;
+
   @ApiProperty()
   userId!: string;
 
@@ -37,6 +41,7 @@ export class QuackResponseDto {
     return {
       id: quack.id,
       text: quack.text,
+      mood: quack.mood,
       userId: quack.userId,
       createdAt: quack.createdAt,
       user: {
