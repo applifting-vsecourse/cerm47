@@ -40,3 +40,11 @@ Run prettier from inside the workspace (`pnpm --filter backend exec prettier --w
 
 - Boolean variables need an `is`/`has`/`should`/`can`/`did`/`will`/`does` prefix (`isTooShort`, not `tooShort`).
 - `||` and `cond ? x : undefined` both trip `prefer-nullish-coalescing`. For "empty string means none", write `x === "" ? undefined : x`.
+
+### Search and filter inputs
+
+- Optional query params: a blank value means "not set", not "invalid". `@IsOptional()` only skips `undefined`/`null`, so a `?q=` that trims to `''` hits `@MinLength` and returns 400. In the `@Transform`, map a blank string to `undefined`.
+- Test DTO transforms through the real pipe (`new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` with `pipe.transform(...)`), not by calling the service. The service never sees what the pipe rejects.
+- Debounced inputs bound to the URL: a pending draft survives a change made from outside (e.g. clearing after a post) when the URL value doesn't change. Remount the input with a `key` instead of trying to sync the draft.
+- With `placeholderData: keepPreviousData`, `isLoading` is false while stale data is shown. Pass `isLoading || isPlaceholderData` to the list, or a stale empty result shows "no matches" for the new term.
+- Search terms are logged with the user id (see `story.md`). Treat that as a privacy decision when changing the log line.

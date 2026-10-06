@@ -11,9 +11,12 @@ export class ListQuacksQueryDto {
     maxLength: 100,
   })
   @IsOptional()
-  @Transform(({ value }: { value: unknown }) =>
-    typeof value === 'string' ? value.trim() : value,
-  )
+  // A blank term means "no search", so it must reach the validators as undefined.
+  @Transform(({ value }: { value: unknown }) => {
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    return trimmed === '' ? undefined : trimmed;
+  })
   @IsString()
   @MinLength(3)
   @MaxLength(100)

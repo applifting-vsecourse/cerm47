@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -55,5 +56,30 @@ describe("QuackSearch", () => {
     )
 
     expect(screen.getByLabelText("Search quacks")).toHaveValue("")
+  })
+})
+
+describe("QuackSearch edge cases", () => {
+  beforeEach(() => vi.useFakeTimers({ shouldAdvanceTime: true }))
+  afterEach(() => vi.useRealTimers())
+
+  it("keeps a typed leading space when the page reports a blank term", async () => {
+    // Mimics the page: a blank term is stored as "" in the URL.
+    function Harness() {
+      const [value, setValue] = useState("")
+      return (
+        <QuackSearch
+          value={value}
+          onChange={(next) => setValue(next.trim() ? next : "")}
+        />
+      )
+    }
+    render(<Harness />)
+
+    await userEvent.type(screen.getByLabelText("Search quacks"), " ")
+    act(() => {
+      vi.advanceTimersByTime(300)
+    })
+    expect(screen.getByLabelText("Search quacks")).toHaveValue(" ")
   })
 })

@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useCallback, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { z } from "zod"
@@ -25,6 +25,8 @@ function QuacksPage() {
   const { q = "" } = Route.useSearch()
   const navigate = Route.useNavigate()
   const quacksQuery = useQuery(quacksQueryOptions(q))
+  // Remounting the search box drops a half-typed term and its pending debounce.
+  const [searchBoxKey, setSearchBoxKey] = useState(0)
 
   // `replace` keeps every keystroke pause out of the back-button history.
   const setSearch = useCallback(
@@ -42,10 +44,14 @@ function QuacksPage() {
 
         <QuackForm
           className="mb-6"
-          onPosted={() => setSearch("")}
+          onPosted={() => {
+            setSearch("")
+            setSearchBoxKey((key) => key + 1)
+          }}
         />
 
         <QuackSearch
+          key={searchBoxKey}
           className="mb-4"
           value={q}
           onChange={setSearch}
@@ -53,7 +59,8 @@ function QuacksPage() {
 
         <QuackList
           quacks={quacksQuery.data ?? []}
-          isLoading={quacksQuery.isLoading}
+          // Stale placeholder results must not pass for the new term's answer.
+          isLoading={quacksQuery.isLoading || quacksQuery.isPlaceholderData}
           error={quacksQuery.error ?? undefined}
           searchTerm={activeSearch(q)}
           onClearSearch={() => setSearch("")}
