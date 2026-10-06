@@ -31,3 +31,12 @@ The CLI puts `shadow-xs`/`shadow-sm` on inputs, textareas and cards. [`DESIGN.md
 Assume the dev servers are up. If something is listening on the app's ports, that is this application: use it. Don't start a second instance, don't restart it, don't run `pnpm dev`.
 
 Don't reach for the browser to check your own work. Tests and type-checks are the evidence; open the running app when asked to, not on your own initiative.
+
+### Formatting
+
+Run prettier from inside the workspace (`pnpm --filter backend exec prettier --write src`), not from the repo root. The root run uses a different config, and `check-all` then fails on `format:check`.
+
+### Lint rules generated code trips over
+
+- Boolean variables need an `is`/`has`/`should`/`can`/`did`/`will`/`does` prefix (`isTooShort`, not `tooShort`).
+- `||` and `cond ? x : undefined` both trip `prefer-nullish-coalescing`. For "empty string means none", write `x === "" ? undefined : x`.
