@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { Seo } from "@/components/Seo"
 
+import { useSession } from "@/features/auth/hooks/useSession"
 import { quacksQueryOptions } from "@/features/quack/api/quacksQueryOptions"
 import { QuackForm } from "@/features/quack/components/QuackForm"
 import { QuackList } from "@/features/quack/components/QuackList"
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/_ProtectedPages/quacks")({
 
 function QuacksPage() {
   const { q = "" } = Route.useSearch()
+  const { user } = useSession()
   const navigate = Route.useNavigate()
   const quacksQuery = useQuery(quacksQueryOptions(q))
   // Remounting the search box drops a half-typed term and its pending debounce.
@@ -44,6 +46,7 @@ function QuacksPage() {
 
         <QuackForm
           className="mb-6"
+          defaultMood={user?.defaultMood}
           onPosted={() => {
             setSearch("")
             setSearchBoxKey((key) => key + 1)

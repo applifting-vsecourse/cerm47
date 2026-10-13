@@ -36,6 +36,22 @@ Don't reach for the browser to check your own work. Tests and type-checks are th
 
 Run prettier from inside the workspace (`pnpm --filter backend exec prettier --write src`), not from the repo root. The root run uses a different config, and `check-all` then fails on `format:check`.
 
+The Windows working tree is CRLF (`core.autocrlf=true`), but prettier writes LF. Running `prettier --write src` over a whole workspace flips every file, and VS Code then shows 100+ changed files while `git diff` shows almost nothing. Format only the files you touched (`prettier --write <files>`), then put CRLF back on them (`sed -i 's/$/\r/' <file>`; skip files that already have it). Judge what changed by `git status --short`, which is what VS Code shows, not by `git diff` alone.
+
+### Features don't import each other
+
+ESLint (`import/no-restricted-paths`) forbids `src/features/a` importing from `src/features/b`. When two features need the same thing, put it in `src/lib` (schemas, constants, helpers) or `src/components` (shared UI such as `MoodPicker`); it may not import from features. Wire features together from `src/routes`, which may import any feature, by passing props and callbacks (`QuackForm` gets `defaultMood` from the quacks page; the settings page invalidates the quack list through `onSaved`). Don't reach for a second copy of a control because it lives in another feature.
+
+### Adding a field to the user
+
+The user is a BetterAuth user (a black box), so extra profile fields go through its config, not a custom endpoint:
+
+1. `schema.prisma`: add the column to `User` and write the migration by hand under `prisma/migrations/` (apply with `prisma migrate deploy`).
+2. `better-auth.config.ts`: add it to `user.additionalFields` with `input: true` and a `validator.input` (a Standard Schema, see `profile-fields.ts`). That is the server-side validation, and BetterAuth returns it as a 400.
+3. `auth-client.ts`: declare the same field in `inferAdditionalFields`.
+4. `authSessionQueryOptions.ts`: map it into `SessionUser` (parse enums, don't trust the string).
+5. Save with `authClient.updateUser`, sending only the changed fields. Put field-specific server errors (e.g. `USERNAME_IS_ALREADY_TAKEN`) next to their input; the `code` is on the error.
+
 ### Lint rules generated code trips over
 
 - Boolean variables need an `is`/`has`/`should`/`can`/`did`/`will`/`does` prefix (`isTooShort`, not `tooShort`).

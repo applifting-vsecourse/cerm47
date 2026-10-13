@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
 
+import { MoodPicker } from "@/components/MoodPicker"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,20 +15,14 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Textarea } from "@/components/ui/textarea"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { moodValueSchema, NO_MOOD, type QuackMood } from "@/lib/mood"
 import { cn } from "@/lib/utils"
 
-import { quackMoodSchema } from "@/features/quack/api/quackSchemas"
-import { MOOD_OPTIONS } from "@/features/quack/components/mood"
 import { useAddQuack } from "@/features/quack/hooks/useAddQuack"
 
 // Mirrors the server-side DTO (MaxLength(280)) so the user is told before
 // the request is made — the server still validates independently.
 const MAX_LENGTH = 280
-
-// A collapsible single-select toggle group reports "" when nothing is
-// pressed, so that doubles as the "no mood" sentinel.
-const NO_MOOD = ""
 
 const schema = z.object({
   text: z
@@ -35,22 +30,26 @@ const schema = z.object({
     .trim()
     .min(1, "Write something first")
     .max(MAX_LENGTH, `Keep it under ${MAX_LENGTH} characters`),
-  mood: z.union([quackMoodSchema, z.literal(NO_MOOD)]),
+  mood: moodValueSchema,
 })
 
 type FormValues = z.infer<typeof schema>
 
 type QuackFormProps = {
   className?: string
+  /** The mood chosen on the Settings page; the form starts with it selected. */
+  defaultMood?: QuackMood | null
   /** Called after a quack is posted successfully. */
   onPosted?: () => void
 }
 
-export function QuackForm({ className, onPosted }: QuackFormProps) {
+export function QuackForm({ className, defaultMood, onPosted }: QuackFormProps) {
   const addQuack = useAddQuack()
+  // reset() after posting returns to this mood.
+  const initialMood = defaultMood ?? NO_MOOD
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { text: "", mood: NO_MOOD },
+    defaultValues: { text: "", mood: initialMood },
   })
 
   const text = useWatch({ control: form.control, name: "text" })
@@ -110,25 +109,11 @@ export function QuackForm({ className, onPosted }: QuackFormProps) {
             <FormItem>
               <FormLabel>Mood</FormLabel>
               <FormControl>
-                <ToggleGroup
-                  type="single"
-                  variant="outline"
-                  size="sm"
-                  spacing={2}
+                <MoodPicker
                   value={field.value}
-                  onValueChange={field.onChange}
+                  onChange={field.onChange}
                   disabled={addQuack.isPending}
-                >
-                  {MOOD_OPTIONS.map((option) => (
-                    <ToggleGroupItem
-                      key={option.value}
-                      value={option.value}
-                      aria-label={option.label}
-                    >
-                      <span aria-hidden="true">{option.emoji}</span>
-                    </ToggleGroupItem>
-                  ))}
-                </ToggleGroup>
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
