@@ -37,11 +37,57 @@ model Quack {
   mood      QuackMood?
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
+  poll      Poll?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @default(now()) @updatedAt
 
   @@index([userId])
   @@map("quack")
+}
+
+model Poll {
+  id       String       @id @default(cuid())
+  quack    Quack        @relation(fields: [quackId], references: [id], onDelete: Cascade)
+  quackId  String       @unique
+  // null = open; set once, never cleared
+  closedAt DateTime?
+  options  PollOption[]
+  votes    PollVote[]
+
+  @@map("poll")
+}
+
+model PollOption {
+  id       String     @id @default(cuid())
+  poll     Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  pollId   String
+  text     String     @db.VarChar(80)
+  // order the author wrote the options in, 0-based
+  position Int
+  votes    PollVote[]
+
+  @@unique([pollId, position])
+  // target of the composite foreign key on PollVote
+  @@unique([id, pollId])
+  @@map("poll_option")
+}
+
+model PollVote {
+  id        String     @id @default(cuid())
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  pollId    String
+  // a vote can only point at an option of its own poll
+  option    PollOption @relation(fields: [optionId, pollId], references: [id, pollId], onDelete: Cascade)
+  optionId  String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @default(now()) @updatedAt
+
+  // one person, one vote
+  @@unique([pollId, userId])
+  @@index([optionId])
+  @@map("poll_vote")
 }
 
 model Session {
@@ -103,7 +149,8 @@ model User {
   sessions        Session[]
   accounts        Account[]
   quacks          Quack[]
-  role            UserRole  @default(user)
+  pollVotes       PollVote[]
+  role           UserRole  @default(user)
 
   username        String? @db.VarChar(50)
   displayUsername String? @db.VarChar(50)
