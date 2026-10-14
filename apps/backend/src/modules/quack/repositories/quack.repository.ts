@@ -4,10 +4,18 @@ import {
   User as PrismaUser,
 } from '@/generated/prisma/client';
 import { Quack, QuackMood } from '@/modules/quack/domain/quack';
+import {
+  mapPrismaPollToDomain,
+  pollInclude,
+  PrismaPollForViewer,
+} from '@/modules/quack/repositories/poll.mapper';
 import { Injectable } from '@nestjs/common';
 
 const mapPrismaQuackToDomain = (
-  quack: PrismaQuack & { user?: PrismaUser },
+  quack: PrismaQuack & {
+    user?: PrismaUser;
+    poll?: PrismaPollForViewer | null;
+  },
 ): Quack => ({
   id: quack.id,
   text: quack.text,
@@ -22,6 +30,7 @@ const mapPrismaQuackToDomain = (
         username: quack.user.username ?? '',
       }
     : undefined,
+  poll: quack.poll ? mapPrismaPollToDomain(quack.poll) : null,
 });
 
 /**
@@ -37,7 +46,7 @@ export class QuackRepository {
    * author's name or the author's username. Prisma escapes `%` and `_` in
    * `contains`, so user input is never treated as a wildcard.
    */
-  async getQuacks(terms: string[] = []): Promise<Quack[]> {
+  async getQuacks(viewerId: string, terms: string[] = []): Promise<Quack[]> {
     const quacks = await this.prisma.quack.findMany({
       where: {
         AND: terms.map((term) => ({
@@ -54,7 +63,10 @@ export class QuackRepository {
           ],
         })),
       },
-      include: { user: true },
+      include: {
+        user: true,
+        poll: { include: pollInclude(viewerId) },
+      },
       orderBy: { createdAt: 'desc' },
     });
     return quacks.map(mapPrismaQuackToDomain);
@@ -63,15 +75,33 @@ export class QuackRepository {
   async createQuack(createQuackData: {
     text: string;
     mood?: QuackMood;
+    pollOptions?: string[];
     userId: string;
   }): Promise<Quack> {
+    const { pollOptions } = createQuackData;
     const quack = await this.prisma.quack.create({
       data: {
         text: createQuackData.text,
         mood: createQuackData.mood,
         user: { connect: { id: createQuackData.userId } },
+        // quack, poll and options are written together or not at all
+        poll: pollOptions
+          ? {
+              create: {
+                options: {
+                  create: pollOptions.map((text, position) => ({
+                    text,
+                    position,
+                  })),
+                },
+              },
+            }
+          : undefined,
       },
-      include: { user: true },
+      include: {
+        user: true,
+        poll: { include: pollInclude(createQuackData.userId) },
+      },
     });
     return mapPrismaQuackToDomain(quack);
   }

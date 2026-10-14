@@ -1,4 +1,5 @@
 import { QuackMood } from '@/generated/prisma/client';
+import { Poll } from './poll';
 
 export type QuackAuthor = {
   id: string;
@@ -14,6 +15,7 @@ export type Quack = {
   createdAt: Date;
   updatedAt: Date;
   user?: QuackAuthor;
+  poll?: Poll | null;
 };
 
 export { QuackMood };

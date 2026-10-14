@@ -11,7 +11,7 @@ export class QuacksService {
 
   async getQuacks(user: Identity, search?: string): Promise<Quack[]> {
     const terms = (search ?? '').split(/\s+/).filter(Boolean);
-    const quacks = await this.quackRepository.getQuacks(terms);
+    const quacks = await this.quackRepository.getQuacks(user.id, terms);
 
     // One line per search request, so usage of the feature can be counted.
     // Blank terms are plain feed loads and are not logged.
@@ -30,13 +30,27 @@ export class QuacksService {
 
   async createQuack(
     user: Identity,
-    quackData: { text: string; mood?: QuackMood },
+    quackData: { text: string; mood?: QuackMood; pollOptions?: string[] },
   ): Promise<Quack> {
-    return this.quackRepository.createQuack({
+    const quack = await this.quackRepository.createQuack({
       text: quackData.text,
       mood: quackData.mood,
+      pollOptions: quackData.pollOptions,
       // the author is taken from the session, never from the request body
       userId: user.id,
     });
+
+    // Only ids and a count: neither the question nor the options are logged.
+    if (quack.poll) {
+      this.logger.log(
+        JSON.stringify({
+          event: 'poll_created',
+          userId: user.id,
+          pollId: quack.poll.id,
+          options: quack.poll.options.length,
+        }),
+      );
+    }
+    return quack;
   }
 }
