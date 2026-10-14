@@ -4,12 +4,13 @@ import { moodEmoji, moodLabel } from "@/lib/mood"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { Highlight } from "@/features/quack/components/Highlight"
+import { PollView } from "@/features/quack/components/PollView"
 import { UsersName } from "@/features/quack/components/UsersName"
 import { UsersUserName } from "@/features/quack/components/UsersUserName"
 
-type QuackItemProps = { quack: Quack; terms?: string[] }
+type QuackItemProps = { quack: Quack; terms?: string[]; currentUserId?: string }
 
-export function QuackItem({ quack, terms }: QuackItemProps) {
+export function QuackItem({ quack, terms, currentUserId }: QuackItemProps) {
   const { name, username } = quack.user
 
   const initials = name
@@ -51,6 +52,13 @@ export function QuackItem({ quack, terms }: QuackItemProps) {
             terms={terms}
           />
         </p>
+        {quack.poll ? (
+          <PollView
+            quackId={quack.id}
+            poll={quack.poll}
+            isAuthor={quack.userId === currentUserId}
+          />
+        ) : null}
       </div>
     </article>
   )

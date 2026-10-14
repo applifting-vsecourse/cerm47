@@ -65,6 +65,7 @@ function QuacksPage() {
           // Stale placeholder results must not pass for the new term's answer.
           isLoading={quacksQuery.isLoading || quacksQuery.isPlaceholderData}
           error={quacksQuery.error ?? undefined}
+          currentUserId={user?.id}
           searchTerm={activeSearch(q)}
           onClearSearch={() => setSearch("")}
           // Only the error state offers a retry — posting invalidates the list,
