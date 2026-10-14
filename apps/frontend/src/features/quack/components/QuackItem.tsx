@@ -1,9 +1,9 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { formatDate } from "@/lib/date"
+import { moodEmoji, moodLabel } from "@/lib/mood"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { Highlight } from "@/features/quack/components/Highlight"
-import { moodEmoji, moodLabel } from "@/features/quack/components/mood"
 import { UsersName } from "@/features/quack/components/UsersName"
 import { UsersUserName } from "@/features/quack/components/UsersUserName"
 
