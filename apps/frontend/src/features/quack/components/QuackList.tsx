@@ -15,6 +15,8 @@ type QuackListProps = {
   /** The active search term, if any — switches the empty state to "no matches". */
   searchTerm?: string
   onClearSearch?: () => void
+  /** The signed-in user; only the author of a quack can close its poll. */
+  currentUserId?: string
 }
 
 export function QuackList({
@@ -24,6 +26,7 @@ export function QuackList({
   onReload,
   searchTerm,
   onClearSearch,
+  currentUserId,
 }: QuackListProps) {
   const terms = searchTerms(searchTerm)
 
@@ -85,6 +88,7 @@ export function QuackList({
           key={quack.id}
           quack={quack}
           terms={terms}
+          currentUserId={currentUserId}
         />
       ))}
     </div>

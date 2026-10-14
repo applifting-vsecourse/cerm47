@@ -1,5 +1,6 @@
 // Example unit test — the pattern to copy for your own services.
 // The repository is mocked, so the test exercises the service in isolation.
+import { Poll } from '@/modules/quack/domain/poll';
 import { Quack } from '@/modules/quack/domain/quack';
 import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
@@ -29,7 +30,7 @@ describe('QuacksService', () => {
     const log = jest.spyOn(service['logger'], 'log').mockImplementation();
 
     await expect(service.getQuacks(user)).resolves.toEqual(quacks);
-    expect(repository.getQuacks).toHaveBeenCalledWith([]);
+    expect(repository.getQuacks).toHaveBeenCalledWith('u1', []);
     expect(log).not.toHaveBeenCalled();
   });
 
@@ -41,7 +42,7 @@ describe('QuacksService', () => {
     const log = jest.spyOn(service['logger'], 'log').mockImplementation();
 
     await service.getQuacks(user, '   ');
-    expect(repository.getQuacks).toHaveBeenCalledWith([]);
+    expect(repository.getQuacks).toHaveBeenCalledWith('u1', []);
     expect(log).not.toHaveBeenCalled();
   });
 
@@ -53,7 +54,7 @@ describe('QuacksService', () => {
     const log = jest.spyOn(service['logger'], 'log').mockImplementation();
 
     await service.getQuacks(user, '  duck   pond ');
-    expect(repository.getQuacks).toHaveBeenCalledWith(['duck', 'pond']);
+    expect(repository.getQuacks).toHaveBeenCalledWith('u1', ['duck', 'pond']);
     expect(log).toHaveBeenCalledTimes(1);
     expect(JSON.parse(log.mock.calls[0][0] as string)).toEqual({
       event: 'quack_search',
@@ -95,6 +96,59 @@ describe('QuacksService', () => {
       text: 'hello',
       mood: 'happy',
       userId: 'u1',
+    });
+  });
+
+  describe('polls', () => {
+    const aPoll = (): Poll => ({
+      id: 'p1',
+      isClosed: false,
+      totalVotes: 0,
+      myOptionId: null,
+      options: [
+        { id: 'o1', text: 'Pizza', votes: 0 },
+        { id: 'o2', text: 'Sushi', votes: 0 },
+      ],
+    });
+
+    it('creates a quack with a poll and logs it without any text', async () => {
+      const created = aQuack({ id: 'q4', poll: aPoll() });
+      const repository = mock<QuackRepository>();
+      repository.createQuack.mockResolvedValue(created);
+
+      const service = new QuacksService(repository);
+      const log = jest.spyOn(service['logger'], 'log').mockImplementation();
+
+      await expect(
+        service.createQuack(user, {
+          text: 'Lunch?',
+          pollOptions: ['Pizza', 'Sushi'],
+        }),
+      ).resolves.toEqual(created);
+      expect(repository.createQuack).toHaveBeenCalledWith({
+        text: 'Lunch?',
+        mood: undefined,
+        pollOptions: ['Pizza', 'Sushi'],
+        userId: 'u1',
+      });
+      expect(log).toHaveBeenCalledTimes(1);
+      expect(JSON.parse(log.mock.calls[0][0] as string)).toEqual({
+        event: 'poll_created',
+        userId: 'u1',
+        pollId: 'p1',
+        options: 2,
+      });
+    });
+
+    it('does not log a poll for a plain quack', async () => {
+      const repository = mock<QuackRepository>();
+      repository.createQuack.mockResolvedValue(aQuack());
+
+      const service = new QuacksService(repository);
+      const log = jest.spyOn(service['logger'], 'log').mockImplementation();
+
+      await service.createQuack(user, { text: 'hello' });
+      expect(log).not.toHaveBeenCalled();
     });
   });
 });

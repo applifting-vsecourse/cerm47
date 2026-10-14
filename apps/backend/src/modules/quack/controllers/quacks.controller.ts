@@ -58,6 +58,11 @@ export class QuacksController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a quack' })
   @ApiResponse({ status: 201, type: QuackResponseDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid quack, or a poll that does not have 2�6 distinct options',
+  })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   async create(
     @User() user: Identity,
@@ -66,6 +71,7 @@ export class QuacksController {
     const quack = await this.quacksService.createQuack(user, {
       text: body.text,
       mood: body.mood,
+      pollOptions: body.poll?.options,
     });
     return QuackResponseDto.fromDomain(quack);
   }

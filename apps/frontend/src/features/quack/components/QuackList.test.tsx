@@ -1,4 +1,5 @@
 // Example component test — the pattern to copy for your own components.
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
@@ -13,6 +14,7 @@ const quack = (overrides: Partial<Quack> = {}): Quack => ({
   userId: "u1",
   createdAt: new Date("2026-01-01T12:00:00Z"),
   user: { id: "u1", name: "Caffeinated Duck", username: "CaffeinatedDuck" },
+  poll: null,
   ...overrides,
 })
 
@@ -80,5 +82,40 @@ describe("QuackList", () => {
     )
 
     expect(container.querySelectorAll("mark").length).toBeGreaterThan(0)
+  })
+
+  describe("polls", () => {
+    const aPoll = (): NonNullable<Quack["poll"]> => ({
+      id: "p1",
+      isClosed: false,
+      totalVotes: 1,
+      myOptionId: null,
+      options: [
+        { id: "o1", text: "Pizza", votes: 1 },
+        { id: "o2", text: "Sushi", votes: 0 },
+      ],
+    })
+    const renderList = (quacks: Quack[], currentUserId?: string) =>
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <QuackList
+            quacks={quacks}
+            currentUserId={currentUserId}
+          />
+        </QueryClientProvider>,
+      )
+
+    it("shows the poll under the quack text", () => {
+      renderList([quack({ text: "Lunch?", poll: aPoll() })])
+
+      expect(screen.getByText("Lunch?")).toBeInTheDocument()
+      expect(screen.getAllByRole("radio")).toHaveLength(2)
+    })
+
+    it("shows no poll for a plain quack", () => {
+      renderList([quack()])
+
+      expect(screen.queryByRole("radio")).not.toBeInTheDocument()
+    })
   })
 })

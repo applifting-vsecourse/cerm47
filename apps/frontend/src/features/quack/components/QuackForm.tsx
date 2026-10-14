@@ -18,7 +18,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { moodValueSchema, NO_MOOD, type QuackMood } from "@/lib/mood"
 import { cn } from "@/lib/utils"
 
+import { PollFields } from "@/features/quack/components/PollFields"
 import { useAddQuack } from "@/features/quack/hooks/useAddQuack"
+import { emptyPoll, pollFormSchema } from "@/features/quack/lib/pollOptions"
 
 // Mirrors the server-side DTO (MaxLength(280)) so the user is told before
 // the request is made — the server still validates independently.
@@ -31,6 +33,8 @@ const schema = z.object({
     .min(1, "Write something first")
     .max(MAX_LENGTH, `Keep it under ${MAX_LENGTH} characters`),
   mood: moodValueSchema,
+  // null = a plain quack; an object = a quack with a poll
+  poll: pollFormSchema.nullable(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -49,17 +53,19 @@ export function QuackForm({ className, defaultMood, onPosted }: QuackFormProps) 
   const initialMood = defaultMood ?? NO_MOOD
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { text: "", mood: initialMood },
+    defaultValues: { text: "", mood: initialMood, poll: null },
   })
 
   const text = useWatch({ control: form.control, name: "text" })
   const length = text?.length ?? 0
+  const poll = useWatch({ control: form.control, name: "poll" })
 
   const handleSubmit = (values: FormValues) => {
     addQuack.mutate(
       {
         text: values.text,
         mood: values.mood === NO_MOOD ? undefined : values.mood,
+        pollOptions: values.poll?.options.map((option) => option.text),
       },
       {
         onSuccess: () => {
@@ -120,7 +126,18 @@ export function QuackForm({ className, defaultMood, onPosted }: QuackFormProps) 
           )}
         />
 
+        {poll ? <PollFields isDisabled={addQuack.isPending} /> : null}
+
         <div className="flex items-center justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={addQuack.isPending}
+            onClick={() => form.setValue("poll", poll ? null : emptyPoll())}
+          >
+            {poll ? "Remove poll" : "Add a poll"}
+          </Button>
           <span
             className={cn(
               "text-sm",
