@@ -5,6 +5,7 @@ import { moodEmoji, moodLabel } from "@/lib/mood"
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { Highlight } from "@/features/quack/components/Highlight"
 import { PollView } from "@/features/quack/components/PollView"
+import { QuackDeleteButton } from "@/features/quack/components/QuackDeleteButton"
 import { UsersName } from "@/features/quack/components/UsersName"
 import { UsersUserName } from "@/features/quack/components/UsersUserName"
 
@@ -12,6 +13,7 @@ type QuackItemProps = { quack: Quack; terms?: string[]; currentUserId?: string }
 
 export function QuackItem({ quack, terms, currentUserId }: QuackItemProps) {
   const { name, username } = quack.user
+  const isAuthor = quack.userId === currentUserId
 
   const initials = name
     .split(" ")
@@ -56,10 +58,12 @@ export function QuackItem({ quack, terms, currentUserId }: QuackItemProps) {
           <PollView
             quackId={quack.id}
             poll={quack.poll}
-            isAuthor={quack.userId === currentUserId}
+            isAuthor={isAuthor}
           />
         ) : null}
       </div>
+
+      {isAuthor ? <QuackDeleteButton quackId={quack.id} /> : null}
     </article>
   )
 }

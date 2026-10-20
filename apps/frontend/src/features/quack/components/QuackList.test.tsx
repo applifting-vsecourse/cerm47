@@ -118,4 +118,41 @@ describe("QuackList", () => {
       expect(screen.queryByRole("radio")).not.toBeInTheDocument()
     })
   })
+
+  it("offers Delete only on the signed-in user's own quacks", () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <QuackList
+          quacks={[
+            quack({ id: "q1", userId: "u1" }),
+            quack({ id: "q2", userId: "u2", text: "not mine" }),
+          ]}
+          currentUserId="u1"
+        />
+      </QueryClientProvider>,
+    )
+
+    expect(screen.getAllByRole("button", { name: "Delete quack" })).toHaveLength(1)
+  })
+
+  it("offers no Delete when nobody is known", () => {
+    render(<QuackList quacks={[quack()]} />)
+
+    expect(screen.queryByRole("button", { name: "Delete quack" })).not.toBeInTheDocument()
+  })
+
+  it("says so when Mine is empty and offers to write the first quack", async () => {
+    const onWriteFirst = vi.fn()
+    render(
+      <QuackList
+        quacks={[]}
+        isMine
+        onWriteFirst={onWriteFirst}
+      />,
+    )
+
+    expect(screen.getByText("You haven't posted any quacks yet.")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Write your first quack" }))
+    expect(onWriteFirst).toHaveBeenCalledOnce()
+  })
 })

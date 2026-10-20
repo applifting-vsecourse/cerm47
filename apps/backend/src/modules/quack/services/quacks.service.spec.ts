@@ -4,6 +4,7 @@ import { Poll } from '@/modules/quack/domain/poll';
 import { Quack } from '@/modules/quack/domain/quack';
 import { QuackRepository } from '@/modules/quack/repositories/quack.repository';
 import { Identity } from '@/shared/auth/domain/identity';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { mock } from 'jest-mock-extended';
 import { QuacksService } from './quacks.service';
 
@@ -30,7 +31,7 @@ describe('QuacksService', () => {
     const log = jest.spyOn(service['logger'], 'log').mockImplementation();
 
     await expect(service.getQuacks(user)).resolves.toEqual(quacks);
-    expect(repository.getQuacks).toHaveBeenCalledWith('u1', []);
+    expect(repository.getQuacks).toHaveBeenCalledWith('u1', [], undefined);
     expect(log).not.toHaveBeenCalled();
   });
 
@@ -42,7 +43,7 @@ describe('QuacksService', () => {
     const log = jest.spyOn(service['logger'], 'log').mockImplementation();
 
     await service.getQuacks(user, '   ');
-    expect(repository.getQuacks).toHaveBeenCalledWith('u1', []);
+    expect(repository.getQuacks).toHaveBeenCalledWith('u1', [], undefined);
     expect(log).not.toHaveBeenCalled();
   });
 
@@ -54,7 +55,11 @@ describe('QuacksService', () => {
     const log = jest.spyOn(service['logger'], 'log').mockImplementation();
 
     await service.getQuacks(user, '  duck   pond ');
-    expect(repository.getQuacks).toHaveBeenCalledWith('u1', ['duck', 'pond']);
+    expect(repository.getQuacks).toHaveBeenCalledWith(
+      'u1',
+      ['duck', 'pond'],
+      undefined,
+    );
     expect(log).toHaveBeenCalledTimes(1);
     expect(JSON.parse(log.mock.calls[0][0] as string)).toEqual({
       event: 'quack_search',
@@ -150,5 +155,45 @@ describe('QuacksService', () => {
       await service.createQuack(user, { text: 'hello' });
       expect(log).not.toHaveBeenCalled();
     });
+  });
+
+  it('limits the feed to the signed-in user when mine is set', async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuacks.mockResolvedValue([]);
+
+    const service = new QuacksService(repository);
+    await service.getQuacks(user, undefined, true);
+    expect(repository.getQuacks).toHaveBeenCalledWith('u1', [], 'u1');
+  });
+
+  it("deletes the signed-in user's own quack", async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuackById.mockResolvedValue(aQuack());
+
+    const service = new QuacksService(repository);
+    await service.deleteQuack(user, 'q1');
+    expect(repository.deleteQuack).toHaveBeenCalledWith('q1');
+  });
+
+  it("refuses to delete someone else's quack", async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuackById.mockResolvedValue(aQuack({ userId: 'u2' }));
+
+    const service = new QuacksService(repository);
+    await expect(service.deleteQuack(user, 'q1')).rejects.toThrow(
+      ForbiddenException,
+    );
+    expect(repository.deleteQuack).not.toHaveBeenCalled();
+  });
+
+  it('reports a missing quack as not found', async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuackById.mockResolvedValue(null);
+
+    const service = new QuacksService(repository);
+    await expect(service.deleteQuack(user, 'nope')).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(repository.deleteQuack).not.toHaveBeenCalled();
   });
 });
