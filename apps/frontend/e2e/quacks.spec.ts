@@ -23,6 +23,8 @@ test("author can post a quack and delete it", async ({ page }) => {
 
   await quack.getByRole("button", { name: "Delete quack" }).click()
   await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click()
+  // An open modal hides the feed from role queries, so wait for it to close first.
+  await expect(page.getByRole("dialog")).toBeHidden()
   await expect(quack).toHaveCount(0)
 })
 
@@ -37,4 +39,24 @@ test("nobody can delete someone else's quack", async ({ page }) => {
   const notMine = await findQuackNotBy(page, "DeepDuckThoughts")
   const response = await page.request.delete(`${API}/quacks/${notMine.id}`)
   expect(response.status()).toBe(403)
+})
+
+test("moderator can delete someone else's quack", async ({ page, browser }) => {
+  // A throwaway quack by a regular user, so seed data stays untouched.
+  const text = `E2E mod quack ${Date.now()}`
+  await signIn(page, "caffeinatedduck@example.com", "password1")
+  await page.goto("/quacks")
+  await page.getByLabel("New quack").fill(text)
+  await page.getByRole("button", { name: "Quack", exact: true }).click()
+  await expect(page.getByRole("article").filter({ hasText: text })).toBeVisible()
+
+  const moderator = await (await browser.newContext()).newPage()
+  await signIn(moderator, "admin@example.com", "adminpassword")
+  await moderator.goto("/quacks")
+
+  const quack = moderator.getByRole("article").filter({ hasText: text })
+  await quack.getByRole("button", { name: "Delete quack" }).click()
+  await moderator.getByRole("dialog").getByRole("button", { name: "Delete" }).click()
+  await expect(moderator.getByRole("dialog")).toBeHidden()
+  await expect(quack).toHaveCount(0)
 })

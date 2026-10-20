@@ -90,6 +90,7 @@ function QuacksPage() {
           isLoading={quacksQuery.isLoading || quacksQuery.isPlaceholderData}
           error={quacksQuery.error ?? undefined}
           currentUserId={user?.id}
+          isAdmin={user?.role === "admin"}
           searchTerm={activeSearch(q)}
           onClearSearch={() => setSearch("")}
           isMine={isMine}

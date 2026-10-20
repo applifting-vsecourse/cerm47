@@ -17,6 +17,8 @@ type QuackListProps = {
   onClearSearch?: () => void
   /** The signed-in user; only the author of a quack can close its poll. */
   currentUserId?: string
+  /** A moderator can delete any quack. */
+  isAdmin?: boolean
   /** The Mine tab is active — changes the empty state. */
   isMine?: boolean
   onWriteFirst?: () => void
@@ -30,6 +32,7 @@ export function QuackList({
   searchTerm,
   onClearSearch,
   currentUserId,
+  isAdmin,
   isMine,
   onWriteFirst,
 }: QuackListProps) {
@@ -105,6 +108,7 @@ export function QuackList({
           quack={quack}
           terms={terms}
           currentUserId={currentUserId}
+          isAdmin={isAdmin}
         />
       ))}
     </div>
