@@ -40,9 +40,15 @@ The Windows working tree is CRLF (`core.autocrlf=true`), but prettier writes LF.
 
 Files made with the Write tool are LF, so new files need the same CRLF pass. To check formatting on your own files, tell prettier what the tree uses: `prettier --check --end-of-line crlf <files>`.
 
-### `pnpm check-all` does not pass on this Windows machine
+### Never ignore `pnpm check-all` failures
 
-Two failures that have nothing to do with your change, so don't chase them:
+Never ignore a `pnpm check-all` failure, on any file, even one you did not create or touch. Fix it, or stop and report it with the output. "It was already failing" and "it is unrelated to my change" are not reasons to report the work as done. On macOS and Linux `check-all` passes in full, so a failure there is always real.
+
+Only the two Windows-specific failures below have a known cause and a manual workaround, and the report must say which checks were run by hand.
+
+### `pnpm check-all` on a Windows machine
+
+Two failures that come from Windows, not from your change. Work around them as described:
 
 - `frontend lint:check` (and the `frontend build`, whose Vite lint plugin runs the same command) pass the glob in single quotes, which Windows does not strip: "No files matching the pattern". Run the steps yourself with double quotes: `npx eslint "./src/**/*.{ts,tsx,js,cjs,mjs}"` and `npx tsc --noEmit` and `npx vitest run` in `apps/frontend`. The production bundle is then not built here.
 - `format:check` flags every file (100+ in the frontend) because the tree is CRLF and prettier expects LF. Use the `--end-of-line crlf` check above on the files you changed.

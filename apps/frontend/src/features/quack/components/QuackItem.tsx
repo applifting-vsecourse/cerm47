@@ -9,9 +9,14 @@ import { QuackDeleteButton } from "@/features/quack/components/QuackDeleteButton
 import { UsersName } from "@/features/quack/components/UsersName"
 import { UsersUserName } from "@/features/quack/components/UsersUserName"
 
-type QuackItemProps = { quack: Quack; terms?: string[]; currentUserId?: string }
+type QuackItemProps = {
+  quack: Quack
+  terms?: string[]
+  currentUserId?: string
+  isAdmin?: boolean
+}
 
-export function QuackItem({ quack, terms, currentUserId }: QuackItemProps) {
+export function QuackItem({ quack, terms, currentUserId, isAdmin }: QuackItemProps) {
   const { name, username } = quack.user
   const isAuthor = quack.userId === currentUserId
 
@@ -63,7 +68,7 @@ export function QuackItem({ quack, terms, currentUserId }: QuackItemProps) {
         ) : null}
       </div>
 
-      {isAuthor ? <QuackDeleteButton quackId={quack.id} /> : null}
+      {isAuthor || isAdmin ? <QuackDeleteButton quackId={quack.id} /> : null}
     </article>
   )
 }

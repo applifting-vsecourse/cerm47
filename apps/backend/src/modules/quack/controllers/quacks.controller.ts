@@ -85,12 +85,12 @@ export class QuacksController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete one of your own quacks' })
+  @ApiOperation({ summary: 'Delete a quack (its author, or an admin)' })
   @ApiResponse({ status: 204, description: 'Deleted' })
   @ApiResponse({ status: 401, description: 'Not signed in' })
   @ApiResponse({
     status: 403,
-    description: 'The quack belongs to someone else',
+    description: 'The quack belongs to someone else and you are not an admin',
   })
   @ApiResponse({ status: 404, description: 'No such quack' })
   async remove(@User() user: Identity, @Param('id') id: string): Promise<void> {

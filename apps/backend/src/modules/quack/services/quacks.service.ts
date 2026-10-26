@@ -70,8 +70,8 @@ export class QuacksService {
   async deleteQuack(user: Identity, id: string): Promise<void> {
     const quack = await this.quackRepository.getQuackById(id);
     if (!quack) throw new NotFoundException('Quack not found');
-    // ownership comes from the session, never from the request
-    if (quack.userId !== user.id) {
+    // identity and role come from the session, never from the request
+    if (quack.userId !== user.id && user.role !== 'admin') {
       throw new ForbiddenException('You can only delete your own quacks');
     }
     await this.quackRepository.deleteQuack(id);
