@@ -17,6 +17,11 @@ type QuackListProps = {
   onClearSearch?: () => void
   /** The signed-in user; only the author of a quack can close its poll. */
   currentUserId?: string
+  /** A moderator can delete any quack. */
+  isAdmin?: boolean
+  /** The Mine tab is active — changes the empty state. */
+  isMine?: boolean
+  onWriteFirst?: () => void
 }
 
 export function QuackList({
@@ -27,6 +32,9 @@ export function QuackList({
   searchTerm,
   onClearSearch,
   currentUserId,
+  isAdmin,
+  isMine,
+  onWriteFirst,
 }: QuackListProps) {
   const terms = searchTerms(searchTerm)
 
@@ -78,9 +86,20 @@ export function QuackList({
       ) : null}
 
       {!isLoading && !error && quacks.length === 0 && terms.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">
-          No quacks yet. Post the first one.
-        </p>
+        <div className="flex flex-col items-center gap-3 py-8 text-center">
+          <p className="text-sm text-muted-foreground">
+            {isMine ? "You haven't posted any quacks yet." : "No quacks yet. Post the first one."}
+          </p>
+          {isMine && onWriteFirst ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onWriteFirst}
+            >
+              Write your first quack
+            </Button>
+          ) : null}
+        </div>
       ) : null}
 
       {quacks.map((quack) => (
@@ -89,6 +108,7 @@ export function QuackList({
           quack={quack}
           terms={terms}
           currentUserId={currentUserId}
+          isAdmin={isAdmin}
         />
       ))}
     </div>

@@ -46,9 +46,14 @@ export class QuackRepository {
    * author's name or the author's username. Prisma escapes `%` and `_` in
    * `contains`, so user input is never treated as a wildcard.
    */
-  async getQuacks(viewerId: string, terms: string[] = []): Promise<Quack[]> {
+  async getQuacks(
+    viewerId: string,
+    terms: string[] = [],
+    authorId?: string,
+  ): Promise<Quack[]> {
     const quacks = await this.prisma.quack.findMany({
       where: {
+        userId: authorId,
         AND: terms.map((term) => ({
           OR: [
             { text: { contains: term, mode: 'insensitive' as const } },
@@ -104,5 +109,17 @@ export class QuackRepository {
       },
     });
     return mapPrismaQuackToDomain(quack);
+  }
+
+  async getQuackById(id: string): Promise<Quack | null> {
+    const quack = await this.prisma.quack.findUnique({
+      where: { id },
+      include: { user: true },
+    });
+    return quack ? mapPrismaQuackToDomain(quack) : null;
+  }
+
+  async deleteQuack(id: string): Promise<void> {
+    await this.prisma.quack.delete({ where: { id } });
   }
 }

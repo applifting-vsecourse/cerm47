@@ -1,3 +1,4 @@
+import type { Ref } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2 } from "lucide-react"
 import { useForm, useWatch } from "react-hook-form"
@@ -43,11 +44,12 @@ type QuackFormProps = {
   className?: string
   /** The mood chosen on the Settings page; the form starts with it selected. */
   defaultMood?: QuackMood | null
+  ref?: Ref<HTMLFormElement>
   /** Called after a quack is posted successfully. */
   onPosted?: () => void
 }
 
-export function QuackForm({ className, defaultMood, onPosted }: QuackFormProps) {
+export function QuackForm({ className, defaultMood, ref, onPosted }: QuackFormProps) {
   const addQuack = useAddQuack()
   // reset() after posting returns to this mood.
   const initialMood = defaultMood ?? NO_MOOD
@@ -79,6 +81,7 @@ export function QuackForm({ className, defaultMood, onPosted }: QuackFormProps) 
   return (
     <Form {...form}>
       <form
+        ref={ref}
         noValidate
         onSubmit={form.handleSubmit(handleSubmit)}
         className={cn("space-y-3", className)}
