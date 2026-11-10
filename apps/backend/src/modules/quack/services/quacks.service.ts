@@ -69,11 +69,27 @@ export class QuacksService {
 
   async deleteQuack(user: Identity, id: string): Promise<void> {
     const quack = await this.quackRepository.getQuackById(id);
-    if (!quack) throw new NotFoundException('Quack not found');
+    // A tombstone is already deleted: nobody, an admin included, deletes it again.
+    if (!quack || quack.isDeleted)
+      throw new NotFoundException('Quack not found');
     // identity and role come from the session, never from the request
     if (quack.userId !== user.id && user.role !== 'admin') {
       throw new ForbiddenException('You can only delete your own quacks');
     }
-    await this.quackRepository.deleteQuack(id);
+    const result = await this.quackRepository.deleteQuack(id);
+    if (result.status === 'not_found') {
+      throw new NotFoundException('Quack not found');
+    }
+
+    // Ids and counts only: the text of a deleted quack is never logged.
+    this.logger.log(
+      JSON.stringify({
+        event: 'quack_deleted',
+        userId: user.id,
+        quackId: id,
+        tombstoned: result.wasTombstoned,
+        replies: result.replyCount,
+      }),
+    );
   }
 }

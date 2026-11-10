@@ -11,6 +11,10 @@ import {
 } from '@/modules/quack/repositories/poll.mapper';
 import { Injectable } from '@nestjs/common';
 
+export type DeleteQuackResult =
+  | { status: 'not_found' }
+  | { status: 'ok'; wasTombstoned: boolean; replyCount: number };
+
 const mapPrismaQuackToDomain = (
   quack: PrismaQuack & {
     user?: PrismaUser | null;
@@ -124,7 +128,36 @@ export class QuackRepository {
     return quack ? mapPrismaQuackToDomain(quack) : null;
   }
 
-  async deleteQuack(id: string): Promise<void> {
-    await this.prisma.quack.delete({ where: { id } });
+  /**
+   * The one place a quack is deleted. A quack nobody replied to is removed
+   * completely. A quack with replies stays as an anonymous tombstone so the
+   * replies keep their place: text, mood, author and poll are wiped in the
+   * same transaction.
+   *
+   * The quack row is locked FOR UPDATE. A reply being added holds it FOR SHARE,
+   * so it is either saved first (and counted below) or waits and finds the
+   * quack gone.
+   */
+  async deleteQuack(id: string): Promise<DeleteQuackResult> {
+    return this.prisma.$transaction(async (tx): Promise<DeleteQuackResult> => {
+      const [locked] = await tx.$queryRaw<
+        { deletedAt: Date | null }[]
+      >`SELECT "deletedAt" FROM "quack" WHERE "id" = ${id} FOR UPDATE`;
+      if (!locked || locked.deletedAt) return { status: 'not_found' };
+
+      const replyCount = await tx.reply.count({ where: { quackId: id } });
+      if (replyCount === 0) {
+        await tx.quack.delete({ where: { id } });
+        return { status: 'ok', wasTombstoned: false, replyCount };
+      }
+
+      // Options and votes go with the poll (cascade).
+      await tx.poll.deleteMany({ where: { quackId: id } });
+      await tx.quack.update({
+        where: { id },
+        data: { text: '', mood: null, userId: null, deletedAt: new Date() },
+      });
+      return { status: 'ok', wasTombstoned: true, replyCount };
+    });
   }
 }

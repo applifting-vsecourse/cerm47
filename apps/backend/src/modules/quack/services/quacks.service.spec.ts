@@ -168,11 +168,19 @@ describe('QuacksService', () => {
     expect(repository.getQuacks).toHaveBeenCalledWith('u1', [], 'u1');
   });
 
+  const removed = {
+    status: 'ok' as const,
+    wasTombstoned: false,
+    replyCount: 0,
+  };
+
   it("deletes the signed-in user's own quack", async () => {
     const repository = mock<QuackRepository>();
     repository.getQuackById.mockResolvedValue(aQuack());
+    repository.deleteQuack.mockResolvedValue(removed);
 
     const service = new QuacksService(repository);
+    jest.spyOn(service['logger'], 'log').mockImplementation();
     await service.deleteQuack(user, 'q1');
     expect(repository.deleteQuack).toHaveBeenCalledWith('q1');
   });
@@ -192,10 +200,72 @@ describe('QuacksService', () => {
     const repository = mock<QuackRepository>();
     repository.getQuackById.mockResolvedValue(aQuack({ userId: 'u2' }));
 
+    repository.deleteQuack.mockResolvedValue(removed);
+
     const service = new QuacksService(repository);
+    jest.spyOn(service['logger'], 'log').mockImplementation();
     const admin = { id: 'u3', role: 'admin' } as Identity;
     await service.deleteQuack(admin, 'q1');
     expect(repository.deleteQuack).toHaveBeenCalledWith('q1');
+  });
+
+  it('answers 404 for a tombstone, even to an admin', async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuackById.mockResolvedValue(
+      aQuack({
+        isDeleted: true,
+        userId: null,
+        text: '',
+        user: undefined,
+        replyCount: 2,
+      }),
+    );
+
+    const service = new QuacksService(repository);
+    const admin = { id: 'u3', role: 'admin' } as Identity;
+    await expect(service.deleteQuack(admin, 'q1')).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(repository.deleteQuack).not.toHaveBeenCalled();
+  });
+
+  it('answers 404 when the repository finds the quack gone', async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuackById.mockResolvedValue(aQuack());
+    repository.deleteQuack.mockResolvedValue({ status: 'not_found' });
+
+    const service = new QuacksService(repository);
+    await expect(service.deleteQuack(user, 'q1')).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('logs quack_deleted with the tombstoned flag and the reply count, and no text', async () => {
+    const repository = mock<QuackRepository>();
+    repository.getQuackById.mockResolvedValue(
+      aQuack({ userId: 'u2', text: 'secret words' }),
+    );
+    repository.deleteQuack.mockResolvedValue({
+      status: 'ok',
+      wasTombstoned: true,
+      replyCount: 2,
+    });
+
+    const service = new QuacksService(repository);
+    const log = jest.spyOn(service['logger'], 'log').mockImplementation();
+    const admin = { id: 'u3', role: 'admin' } as Identity;
+    await service.deleteQuack(admin, 'q1');
+
+    expect(log).toHaveBeenCalledTimes(1);
+    const line = String(log.mock.calls[0]?.[0]);
+    expect(JSON.parse(line)).toEqual({
+      event: 'quack_deleted',
+      userId: 'u3',
+      quackId: 'q1',
+      tombstoned: true,
+      replies: 2,
+    });
+    expect(line).not.toContain('secret words');
   });
 
   it('reports a missing quack as not found', async () => {
