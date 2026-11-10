@@ -3,7 +3,7 @@ import { Poll } from '@/modules/quack/domain/poll';
 import { Quack } from '@/modules/quack/domain/quack';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-class QuackUserDto {
+export class QuackUserDto {
   @ApiProperty()
   id!: string;
 

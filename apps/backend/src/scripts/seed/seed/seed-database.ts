@@ -4,6 +4,7 @@ import { QuackMood } from '@/modules/quack/domain/quack';
 import { BetterAuth } from '@/shared/auth/providers/better-auth.provider';
 import { Config } from '@/shared/config/config.service';
 import { createQuack } from './create-quack';
+import { createReply } from './create-reply';
 import { createUser } from './create-user';
 
 const MINUTE_IN_MS = 60 * 1000;
@@ -92,6 +93,15 @@ export const seedDatabase = async (
     minutesAgo: number;
     text: string;
     mood?: QuackMood;
+    // Oldest first; each reply comes `minutesAfter` the quack.
+    replies?: {
+      author: User;
+      minutesAfter: number;
+      text: string;
+      mood?: QuackMood;
+    }[];
+    // The author deleted it after the replies came in: it stays as a tombstone.
+    isTombstone?: boolean;
   }[] = [
     {
       author: pondAdmin,
@@ -147,6 +157,25 @@ one of them is quacking`,
       mood: 'silly',
     },
     {
+      author: migrationSeason,
+      minutesAgo: 500,
+      text: `Correction: the mountain was a very large goose. Deleting my earlier take.`,
+      isTombstone: true,
+      replies: [
+        {
+          author: pondAdmin,
+          minutesAfter: 12,
+          text: `We have already screenshotted this. The goose has been informed.`,
+        },
+        {
+          author: deepDuckThoughts,
+          minutesAfter: 40,
+          text: `Is a goose not just a mountain that learned to commute?`,
+          mood: 'silly',
+        },
+      ],
+    },
+    {
       author: breadCritic,
       minutesAgo: 415,
       text: `Multigrain. Seeds still attached. Genuinely nutritious.
@@ -166,6 +195,25 @@ Some of us would quite like to feel things.`,
       text: `me: throws one crumb into the pond
 ducks: assemble like the Avengers
 i fear i may have started something`,
+      replies: [
+        {
+          author: breadCritic,
+          minutesAfter: 8,
+          text: `Was it multigrain? I need to know before I form an opinion.`,
+        },
+        {
+          author: pondAdmin,
+          minutesAfter: 15,
+          text: `You have, yes. Please stop.`,
+          mood: 'angry',
+        },
+        {
+          author: deepDuckThoughts,
+          minutesAfter: 30,
+          text: `One crumb is a gift. A hundred ducks is a congregation.`,
+          mood: 'happy',
+        },
+      ],
     },
     {
       author: pondAdmin,
@@ -177,12 +225,40 @@ Please stop tagging me.`,
 
   const now = Date.now();
 
-  for (const { author, minutesAgo, text, mood } of exampleQuacks) {
-    await createQuack(prisma, {
+  for (const {
+    author,
+    minutesAgo,
+    text,
+    mood,
+    replies = [],
+    isTombstone = false,
+  } of exampleQuacks) {
+    const createdAt = new Date(now - minutesAgo * MINUTE_IN_MS);
+    const quack = await createQuack(prisma, {
       text,
       mood,
       userId: author.id,
-      createdAt: new Date(now - minutesAgo * MINUTE_IN_MS),
+      createdAt,
     });
+
+    for (const reply of replies) {
+      await createReply(prisma, {
+        quackId: quack.id,
+        userId: reply.author.id,
+        text: reply.text,
+        mood: reply.mood,
+        createdAt: new Date(
+          createdAt.getTime() + reply.minutesAfter * MINUTE_IN_MS,
+        ),
+      });
+    }
+
+    if (isTombstone) {
+      // The same wipe QuackRepository.deleteQuack does for a quack with replies.
+      await prisma.quack.update({
+        where: { id: quack.id },
+        data: { text: '', mood: null, userId: null, deletedAt: new Date() },
+      });
+    }
   }
 };
