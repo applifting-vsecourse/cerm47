@@ -3,7 +3,7 @@ import { Poll } from '@/modules/quack/domain/poll';
 import { Quack } from '@/modules/quack/domain/quack';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-class QuackUserDto {
+export class QuackUserDto {
   @ApiProperty()
   id!: string;
 
@@ -76,20 +76,37 @@ export class QuackResponseDto {
   @ApiPropertyOptional({ enum: QuackMood, nullable: true })
   mood!: QuackMood | null;
 
-  @ApiProperty()
-  userId!: string;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Null on a tombstone',
+  })
+  userId!: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt!: Date;
 
-  @ApiProperty({ type: QuackUserDto })
-  user!: QuackUserDto;
+  @ApiProperty({
+    type: QuackUserDto,
+    nullable: true,
+    description: 'Null on a tombstone',
+  })
+  user!: QuackUserDto | null;
 
   @ApiProperty({ type: PollResponseDto, nullable: true })
   poll!: PollResponseDto | null;
 
+  @ApiProperty({
+    description:
+      'The author deleted this quack but it has replies: text, mood, author and poll are gone',
+  })
+  isDeleted!: boolean;
+
+  @ApiProperty({ description: 'Replies, counted on every read' })
+  replyCount!: number;
+
   static fromDomain(quack: Quack): QuackResponseDto {
-    if (!quack.user) {
+    if (!quack.isDeleted && !quack.user) {
       throw new Error(
         `QuackResponseDto.fromDomain expected quack.user to be loaded for quack ${quack.id}`,
       );
@@ -100,12 +117,16 @@ export class QuackResponseDto {
       mood: quack.mood,
       userId: quack.userId,
       createdAt: quack.createdAt,
-      user: {
-        id: quack.user.id,
-        name: quack.user.name,
-        username: quack.user.username,
-      },
+      user: quack.user
+        ? {
+            id: quack.user.id,
+            name: quack.user.name,
+            username: quack.user.username,
+          }
+        : null,
       poll: quack.poll ? PollResponseDto.fromDomain(quack.poll) : null,
+      isDeleted: quack.isDeleted,
+      replyCount: quack.replyCount,
     };
   }
 }

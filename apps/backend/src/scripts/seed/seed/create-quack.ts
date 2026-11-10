@@ -1,5 +1,6 @@
 import { PrismaService } from '@/core/prisma/prisma.service';
-import { Quack, QuackMood } from '@/modules/quack/domain/quack';
+import { Quack } from '@/generated/prisma/client';
+import { QuackMood } from '@/modules/quack/domain/quack';
 
 type CreateQuackParams = {
   text: string;

@@ -33,16 +33,38 @@ enum QuackMood {
 
 model Quack {
   id        String     @id @default(cuid())
+  // "" on a tombstone
   text      String     @db.Text
   mood      QuackMood?
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
+  // null only on a tombstone; the quack_tombstone_is_empty check ties the two together
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String?
   poll      Poll?
+  replies   Reply[]
+  // set when the author deleted a quack that already had replies
+  deletedAt DateTime?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @default(now()) @updatedAt
 
   @@index([userId])
   @@map("quack")
+}
+
+model Reply {
+  id        String     @id @default(cuid())
+  text      String     @db.Text
+  mood      QuackMood?
+  // RESTRICT: a quack that still has replies can never be hard-deleted
+  quack     Quack      @relation(fields: [quackId], references: [id], onDelete: Restrict)
+  quackId   String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  createdAt DateTime   @default(now())
+
+  // replies of one quack, oldest first
+  @@index([quackId, createdAt])
+  @@index([userId])
+  @@map("reply")
 }
 
 model Poll {
@@ -150,6 +172,7 @@ model User {
   accounts        Account[]
   quacks          Quack[]
   pollVotes       PollVote[]
+  replies         Reply[]
   role           UserRole  @default(user)
 
   username        String? @db.VarChar(50)

@@ -2,6 +2,7 @@ import { Loader2, RefreshCw } from "lucide-react"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import type { QuackMood } from "@/lib/mood"
 
 import type { Quack } from "@/features/quack/api/quackSchemas"
 import { QuackItem } from "@/features/quack/components/QuackItem"
@@ -22,6 +23,8 @@ type QuackListProps = {
   /** The Mine tab is active — changes the empty state. */
   isMine?: boolean
   onWriteFirst?: () => void
+  /** The mood the reply forms start with. */
+  defaultMood?: QuackMood | null
 }
 
 export function QuackList({
@@ -35,6 +38,7 @@ export function QuackList({
   isAdmin,
   isMine,
   onWriteFirst,
+  defaultMood,
 }: QuackListProps) {
   const terms = searchTerms(searchTerm)
 
@@ -109,6 +113,7 @@ export function QuackList({
           terms={terms}
           currentUserId={currentUserId}
           isAdmin={isAdmin}
+          defaultMood={defaultMood}
         />
       ))}
     </div>

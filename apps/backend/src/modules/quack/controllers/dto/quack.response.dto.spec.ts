@@ -10,10 +10,49 @@ const aQuack = (overrides: Partial<Quack> = {}): Quack => ({
   createdAt: new Date('2026-01-01T12:00:00Z'),
   updatedAt: new Date('2026-01-01T12:00:00Z'),
   user: { id: 'u1', name: 'Caffeinated Duck', username: 'CaffeinatedDuck' },
+  isDeleted: false,
+  replyCount: 0,
   ...overrides,
 });
 
+const aTombstone = (): Quack =>
+  aQuack({
+    text: '',
+    userId: null,
+    mood: null,
+    user: undefined,
+    poll: null,
+    isDeleted: true,
+    replyCount: 2,
+  });
+
 describe('QuackResponseDto', () => {
+  it('serializes a tombstone with no author, text, mood or poll', () => {
+    expect(QuackResponseDto.fromDomain(aTombstone())).toEqual({
+      id: 'q1',
+      text: '',
+      mood: null,
+      userId: null,
+      createdAt: new Date('2026-01-01T12:00:00Z'),
+      user: null,
+      poll: null,
+      isDeleted: true,
+      replyCount: 2,
+    });
+  });
+
+  it('still throws for a live quack whose user was not loaded', () => {
+    expect(() =>
+      QuackResponseDto.fromDomain(aQuack({ user: undefined })),
+    ).toThrow('expected quack.user to be loaded');
+  });
+
+  it('includes replyCount and marks a live quack as not deleted', () => {
+    const dto = QuackResponseDto.fromDomain(aQuack({ replyCount: 3 }));
+    expect(dto.replyCount).toBe(3);
+    expect(dto.isDeleted).toBe(false);
+  });
+
   it('has no poll for a plain quack', () => {
     expect(QuackResponseDto.fromDomain(aQuack()).poll).toBeNull();
     expect(QuackResponseDto.fromDomain(aQuack({ poll: null })).poll).toBeNull();

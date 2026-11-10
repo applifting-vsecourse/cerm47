@@ -8,10 +8,13 @@ import { QuackDeleteButton } from "@/features/quack/components/QuackDeleteButton
 
 vi.mock("@/features/quack/api/deleteQuack", () => ({ deleteQuack: vi.fn() }))
 
-const renderButton = () =>
+const renderButton = (hasReplies = false) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
-      <QuackDeleteButton quackId="q1" />
+      <QuackDeleteButton
+        quackId="q1"
+        hasReplies={hasReplies}
+      />
     </QueryClientProvider>,
   )
 
@@ -28,6 +31,16 @@ describe("QuackDeleteButton", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Delete" }))
     await waitFor(() => expect(deleteQuack).toHaveBeenCalledWith("q1"))
+  })
+
+  it("warns that the text goes but the replies stay when the quack has replies", async () => {
+    renderButton(true)
+
+    await userEvent.click(screen.getByRole("button", { name: "Delete quack" }))
+
+    expect(
+      screen.getByText("This can't be undone. Its text will be removed. Replies to it stay."),
+    ).toBeInTheDocument()
   })
 
   it("does not delete when cancelled", async () => {
