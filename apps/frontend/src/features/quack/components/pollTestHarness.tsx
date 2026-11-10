@@ -29,6 +29,8 @@ const aQuack = (poll: Poll): Quack => ({
   createdAt: new Date("2026-01-01T12:00:00Z"),
   user: { id: "u1", name: "Duck", username: "duck" },
   poll,
+  isDeleted: false,
+  replyCount: 0,
 })
 
 // What the "server" answers when the feed is read again.

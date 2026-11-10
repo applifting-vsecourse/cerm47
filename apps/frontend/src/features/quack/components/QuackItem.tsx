@@ -17,6 +17,15 @@ type QuackItemProps = {
 }
 
 export function QuackItem({ quack, terms, currentUserId, isAdmin }: QuackItemProps) {
+  // A tombstone has no author, text or poll left to show.
+  if (quack.isDeleted || !quack.user) {
+    return (
+      <article className="flex w-full gap-4 border-b border-border pt-2 pb-4 last:border-b-0">
+        <p className="text-sm text-muted-foreground">This quack was deleted</p>
+      </article>
+    )
+  }
+
   const { name, username } = quack.user
   const isAuthor = quack.userId === currentUserId
 

@@ -22,17 +22,10 @@ import { cn } from "@/lib/utils"
 import { PollFields } from "@/features/quack/components/PollFields"
 import { useAddQuack } from "@/features/quack/hooks/useAddQuack"
 import { emptyPoll, pollFormSchema } from "@/features/quack/lib/pollOptions"
-
-// Mirrors the server-side DTO (MaxLength(280)) so the user is told before
-// the request is made — the server still validates independently.
-const MAX_LENGTH = 280
+import { QUACK_TEXT_MAX_LENGTH, quackTextSchema } from "@/features/quack/lib/quackText"
 
 const schema = z.object({
-  text: z
-    .string()
-    .trim()
-    .min(1, "Write something first")
-    .max(MAX_LENGTH, `Keep it under ${MAX_LENGTH} characters`),
+  text: quackTextSchema,
   mood: moodValueSchema,
   // null = a plain quack; an object = a quack with a poll
   poll: pollFormSchema.nullable(),
@@ -144,10 +137,10 @@ export function QuackForm({ className, defaultMood, ref, onPosted }: QuackFormPr
           <span
             className={cn(
               "text-sm",
-              length > MAX_LENGTH ? "text-destructive" : "text-muted-foreground",
+              length > QUACK_TEXT_MAX_LENGTH ? "text-destructive" : "text-muted-foreground",
             )}
           >
-            {length}/{MAX_LENGTH}
+            {length}/{QUACK_TEXT_MAX_LENGTH}
           </span>
           <Button
             type="submit"
