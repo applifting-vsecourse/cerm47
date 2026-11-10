@@ -91,6 +91,7 @@ function QuacksPage() {
           error={quacksQuery.error ?? undefined}
           currentUserId={user?.id}
           isAdmin={user?.role === "admin"}
+          defaultMood={user?.defaultMood}
           searchTerm={activeSearch(q)}
           onClearSearch={() => setSearch("")}
           isMine={isMine}
