@@ -66,6 +66,15 @@ describe("ReplyForm", () => {
     expect(await screen.findByText("This quack was deleted.")).toBeInTheDocument()
   })
 
+  it("leaves the primary button to the post form, as DESIGN.md allows one per view", () => {
+    renderWithQuery(<ReplyForm quackId="q1" />)
+
+    expect(screen.getByRole("button", { name: "Post reply" })).toHaveAttribute(
+      "data-variant",
+      "outline",
+    )
+  })
+
   it("disables the submit button while the reply is being posted", async () => {
     vi.mocked(addReply).mockReturnValue(new Promise(() => undefined))
     renderWithQuery(<ReplyForm quackId="q1" />)

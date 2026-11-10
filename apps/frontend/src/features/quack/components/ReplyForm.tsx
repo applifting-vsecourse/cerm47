@@ -115,6 +115,7 @@ export function ReplyForm({ quackId, defaultMood, className }: ReplyFormProps) {
           </span>
           <Button
             type="submit"
+            variant="outline"
             size="sm"
             disabled={addReply.isPending}
           >
