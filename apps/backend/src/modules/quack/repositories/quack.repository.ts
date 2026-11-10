@@ -13,8 +13,9 @@ import { Injectable } from '@nestjs/common';
 
 const mapPrismaQuackToDomain = (
   quack: PrismaQuack & {
-    user?: PrismaUser;
+    user?: PrismaUser | null;
     poll?: PrismaPollForViewer | null;
+    _count?: { replies: number };
   },
 ): Quack => ({
   id: quack.id,
@@ -23,6 +24,8 @@ const mapPrismaQuackToDomain = (
   userId: quack.userId,
   createdAt: quack.createdAt,
   updatedAt: quack.updatedAt,
+  isDeleted: quack.deletedAt !== null,
+  replyCount: quack._count?.replies ?? 0,
   user: quack.user
     ? {
         id: quack.user.id,
@@ -71,6 +74,7 @@ export class QuackRepository {
       include: {
         user: true,
         poll: { include: pollInclude(viewerId) },
+        _count: { select: { replies: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -106,6 +110,7 @@ export class QuackRepository {
       include: {
         user: true,
         poll: { include: pollInclude(createQuackData.userId) },
+        _count: { select: { replies: true } },
       },
     });
     return mapPrismaQuackToDomain(quack);
